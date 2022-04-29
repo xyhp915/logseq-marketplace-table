@@ -1,3 +1,10 @@
+@import "@blueprintjs/core/lib/scss/variables";
+
+//noinspection CssInvalidPropertyValue
+html, body {
+  overflow: overlay;
+}
+
 h1 {
   font-size: 46px;
   font-weight: 500;
@@ -16,6 +23,10 @@ h1 {
   }
 }
 
+.bp4-dark {
+  background-color: $pt-dark-app-background-color;
+}
+
 .app {
   padding: 0 20px;
   max-width: 1280px;
@@ -25,6 +36,20 @@ h1 {
     padding-top: 0;
     padding-bottom: 0;
     margin-bottom: 10px;
+  }
+
+  .reset-date-range {
+    margin: 0 10px;
+    opacity: .4;
+
+    &:hover {
+      opacity: 1;
+    }
+  }
+
+  .table-wrap {
+    padding-top: 5px;
+    padding-bottom: 50px;
   }
 }
 

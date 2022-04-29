@@ -1,13 +1,18 @@
-import React, { Reducer, useReducer } from 'react'
-import { Button, Card, ControlGroup, InputGroup } from '@blueprintjs/core'
+import React, { Reducer, useEffect, useReducer, useState } from 'react'
+import { Button, Callout, Card, ControlGroup, InputGroup, Spinner } from '@blueprintjs/core'
 import { DateRangeInput } from '@blueprintjs/datetime'
+import useRequest from '@ahooksjs/use-request'
+import { Cell, Column, Table2 } from '@blueprintjs/table'
 
 type appState = {
   q: string | undefined
   category: 'all' | 'themes' | 'plugins' | string
   dateRange: [Date | null, Date | null]
-  loading: boolean
+  darkMode: boolean
+  cacheKey: number
 }
+
+const sourceEndpoint = 'https://cdn.jsdelivr.net/gh/logseq/marketplace@master/plugins.json'
 
 enum appActionsType {
   update = 'update'
@@ -17,7 +22,8 @@ const initialState: appState = {
   q: '',
   category: 'all',
   dateRange: [null, null],
-  loading: false
+  darkMode: true,
+  cacheKey: 0
 }
 
 const appReducer: Reducer<appState, { type?: appActionsType, payload?: any, [key: string]: any } & Partial<appState>> = (
@@ -32,8 +38,57 @@ const appReducer: Reducer<appState, { type?: appActionsType, payload?: any, [key
   }
 }
 
+const fetchPlugins = () => {
+  return fetch(sourceEndpoint)
+    .then(r => r.json())
+}
+
 export function App () {
   const [state, dispatch] = useReducer(appReducer, initialState)
+
+  const { loading, data, error, run } = useRequest(fetchPlugins, {
+    cacheKey: 'plugins-' + state.cacheKey,
+    staleTime: 1000 * 60 * 10
+  })
+
+  const [results, setResults] = useState([])
+
+  useEffect(() => {
+    let ret = data?.packages || []
+
+    if (state.category?.toLowerCase() !== 'all') {
+      const shouldTheme = state.category.toLowerCase() === 'themes'
+      ret = ret.filter((it: any) => {
+        return shouldTheme ? it.theme : !it.theme
+      })
+    }
+
+    const startTime = state.dateRange[0]?.getTime()
+    const endTime = state.dateRange[1]?.getTime()
+
+    if (startTime && endTime) {
+      ret = ret.filter((it: any) => {
+        if (!it.addedAt) return true
+
+        return it.addedAt >= startTime && it.addedAt <= endTime
+      })
+    }
+
+    setResults(ret)
+  }, [
+    data, state.q,
+    state.dateRange,
+    state.category
+  ])
+
+  useEffect(() => {
+    const body = document.body
+    if (state.darkMode) {
+      body.classList.add('bp4-dark')
+    } else {
+      body.classList.remove('bp4-dark')
+    }
+  }, [state.darkMode])
 
   // @ts-ignore
   return (
@@ -55,7 +110,7 @@ export function App () {
                     }}
             >
               {['All', 'Plugins', 'Themes'].map(it => {
-                return <option value={it}>{it}</option>
+                return <option value={it.toLowerCase()}>{it}</option>
               })}
             </select>
             <span className="bp4-icon bp4-icon-double-caret-vertical"></span>
@@ -81,10 +136,10 @@ export function App () {
 
           {/*  status */}
           <Button
+            className={'reset-date-range'}
             large={true}
             minimal={true}
             icon={'reset'}
-            style={{ margin: '0 10px', opacity: '.4' }}
             onClick={() => {
               dispatch({ dateRange: [null, null] })
             }}
@@ -94,6 +149,11 @@ export function App () {
             large={true}
             outlined={true}
             style={{ marginLeft: 0, opacity: '.8', flex: 1 }}
+            onClick={() => {
+              dispatch({ cacheKey: Date.now() })
+              // refresh()
+              run()
+            }}
           >
             Total 83
           </Button>
@@ -116,10 +176,51 @@ export function App () {
         </div>
       </section>
 
-      {/* tables */}
-      <Card>
-        {JSON.stringify(state, null, 2)}
-      </Card>
+      {error ? <Callout title={'Remote Error'} intent={'danger'}>{error.toString()}</Callout> :
+        (<div className={'table-wrap'}>
+          {(loading ? <Spinner/> : <PluginsTable plugins={results}/>)}
+        </div>)
+      }
     </main>
+  )
+}
+
+function PluginsTable (props: { plugins: Array<any> }) {
+  const { plugins } = props
+
+  const titleCellRenderer = (rowIndex: number) => {
+    const d = plugins[rowIndex]
+    return (
+      <Cell>
+        {d.theme ? '🎨' : '🧩'} {d.title}
+      </Cell>
+    )
+  }
+
+  const authorCellRenderer = (rowIndex: number) => <Cell>{plugins[rowIndex].author}</Cell>
+  const repoCellRenderer = (rowIndex: number) => {
+    const d = plugins[rowIndex]
+    return (
+      <Cell>
+        <a href={'https://github.com/' + d.repo} target={'_blank'}>
+          {d.repo}
+        </a>
+      </Cell>
+    )
+  }
+
+  const addedAtCellRenderer = (rowIndex: number) => {
+    const d = plugins[rowIndex].addedAt
+    const date = new Date(d).toDateString()
+    return <Cell>{date}</Cell>
+  }
+
+  return (
+    <Table2 numRows={plugins.length} columnWidths={[250, 150, 300, 160]}>
+      <Column name={'Title'} cellRenderer={titleCellRenderer}/>
+      <Column name={'Author'} cellRenderer={authorCellRenderer}/>
+      <Column name={'Repo'} cellRenderer={repoCellRenderer}/>
+      <Column name={'Added at'} cellRenderer={addedAtCellRenderer}/>
+    </Table2>
   )
 }
