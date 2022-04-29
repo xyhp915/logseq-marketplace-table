@@ -1,0 +1,26 @@
+{
+  "name": "logseq-marketplace-table",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/xyhp915/logseq-marketplace-table.git",
+  "author": "charlie <xyhp915@qq.com>",
+  "license": "MIT",
+  "scripts": {
+    "dev": "parcel ./index.html"
+  },
+  "devDependencies": {
+    "@parcel/transformer-sass": "2.5.0",
+    "parcel": "^2.5.0",
+    "process": "^0.11.10"
+  },
+  "dependencies": {
+    "@blueprintjs/core": "^4.2.1",
+    "@blueprintjs/datetime": "^4.1.4",
+    "@blueprintjs/icons": "^4.2.4",
+    "@types/react": "^18.0.8",
+    "@types/react-dom": "^18.0.0",
+    "normalize.css": "^8.0.1",
+    "react": "^18.1.0",
+    "react-dom": "^18.1.0"
+  }
+}
