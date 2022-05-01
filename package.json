@@ -1,15 +1,17 @@
 {
   "name": "logseq-marketplace-table",
   "version": "1.0.0",
-  "main": "index.js",
   "repository": "https://github.com/xyhp915/logseq-marketplace-table.git",
   "author": "charlie <xyhp915@qq.com>",
   "license": "MIT",
   "scripts": {
-    "dev": "parcel ./index.html"
+    "dev": "parcel ./index.html",
+    "build": "parcel build --public-url ./ ./index.html",
+    "deploy": "gh-pages -d dist"
   },
   "devDependencies": {
     "@parcel/transformer-sass": "2.5.0",
+    "gh-pages": "^3.2.3",
     "parcel": "^2.5.0",
     "process": "^0.11.10"
   },
