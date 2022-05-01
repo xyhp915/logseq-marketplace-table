@@ -3,6 +3,7 @@ import { Button, Callout, Card, ControlGroup, InputGroup, Spinner } from '@bluep
 import { DateRangeInput } from '@blueprintjs/datetime'
 import useRequest from '@ahooksjs/use-request'
 import { Cell, Column, Table2 } from '@blueprintjs/table'
+import Fuse from 'fuse.js'
 
 type appState = {
   q: string | undefined
@@ -56,6 +57,7 @@ export function App () {
   useEffect(() => {
     let ret = data?.packages || []
 
+    // filters
     if (state.category?.toLowerCase() !== 'all') {
       const shouldTheme = state.category.toLowerCase() === 'themes'
       ret = ret.filter((it: any) => {
@@ -73,6 +75,24 @@ export function App () {
         return it.addedAt >= startTime && it.addedAt <= endTime
       })
     }
+
+    // search
+    if (ret?.length > 1 && state.q?.trim().length > 1) {
+      const s = new Fuse(ret, {
+        includeScore: false,
+        distance: 10,
+        minMatchCharLength: 2,
+        keys: ['title', 'name']
+      })
+      ret = s.search(state.q)
+      ret = ret?.map((it: any) => it.item)
+    }
+
+    // sort
+    ret = ret.sort((a: any, b: any) => {
+      if (!b.addedAt) return
+      return b.addedAt - a.addedAt
+    })
 
     setResults(ret)
   }, [
@@ -123,7 +143,7 @@ export function App () {
             style={{ margin: '0 10px', opacity: '.4' }}> x </Button>
           <DateRangeInput
             allowSingleDayRange={true}
-            formatDate={date => date.toLocaleString()}
+            formatDate={date => date.toDateString()}
             onChange={(e) => {
               dispatch({ dateRange: e })
             }}
@@ -155,7 +175,7 @@ export function App () {
               run()
             }}
           >
-            Total 83
+            Total {results?.length || 0}
           </Button>
         </div>
 
@@ -168,7 +188,7 @@ export function App () {
               placeholder="Search title ..."
               autoFocus={true}
               onChange={(e) => {
-                const value = e.target.value?.trim()
+                const value = e.target.value
                 dispatch({ q: value })
               }}
             />
@@ -198,6 +218,7 @@ function PluginsTable (props: { plugins: Array<any> }) {
   }
 
   const authorCellRenderer = (rowIndex: number) => <Cell>{plugins[rowIndex].author}</Cell>
+  const descCellRenderer = (rowIndex: number) => <Cell>{plugins[rowIndex].description}</Cell>
   const repoCellRenderer = (rowIndex: number) => {
     const d = plugins[rowIndex]
     return (
@@ -216,11 +237,12 @@ function PluginsTable (props: { plugins: Array<any> }) {
   }
 
   return (
-    <Table2 numRows={plugins.length} columnWidths={[250, 150, 300, 160]}>
+    <Table2 numRows={plugins.length} columnWidths={[250, 150, 300, 160, 300]}>
       <Column name={'Title'} cellRenderer={titleCellRenderer}/>
       <Column name={'Author'} cellRenderer={authorCellRenderer}/>
       <Column name={'Repo'} cellRenderer={repoCellRenderer}/>
       <Column name={'Added at'} cellRenderer={addedAtCellRenderer}/>
+      <Column name={'Description'} cellRenderer={descCellRenderer}/>
     </Table2>
   )
 }
